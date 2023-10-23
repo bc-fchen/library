@@ -1,0 +1,408 @@
+﻿@{
+    Layout = null;
+}
+<html>
+<head>
+    <title>图书管理系统</title>
+    <!-- For-Mobile-Apps-and-Meta-Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="/lib/element-ui/theme-chalk/index.min.css">
+    <!-- 引入组件库 -->
+    <script src="/lib/vue/dist/vue.min.js"></script>
+    <script src="/lib/element-ui/index.min.js"></script>
+    <script src="/lib/axios/axios.min.js"></script>
+</head>
+<body style="margin:10px;background:white;">
+    <div id="app">
+        <template>
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item>图书管理</el-breadcrumb-item>
+                <el-breadcrumb-item>图书管理</el-breadcrumb-item>
+            </el-breadcrumb>
+            <el-form :inline="true" :model="queryCondition" class="demo-form-inline" style="margin-top: 10px; border: solid;border-width: 1px;border-color: #ebeef5;padding: 10px;">
+                <el-form-item label="书籍名称">
+                    <el-input v-model="queryCondition.Name" placeholder="书籍名称"></el-input>
+                </el-form-item>
+                <el-form-item label="出版社">
+                    <el-input v-model="queryCondition.Publisher" placeholder="出版社"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" v-on:click="handleQuery">查询</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" v-on:click="handleAdd">新增</el-button>
+                </el-form-item>
+            </el-form>
+            
+            <el-table :data="tableData" style="width: 100%" border :default-sort="{prop: 'date', order: 'descending'}">
+                <el-table-column type="expand">
+                  <template slot-scope="props">
+                    <el-form label-position="left" inline class="demo-table-expand">
+                      <el-form-item label="图书馆">
+                        <span>{{ props.row.LibraryName }}</span>
+                      </el-form-item>
+                      <el-form-item label="图书室">
+                        <span>{{ props.row.LibrarySubName }}</span>
+                      </el-form-item>
+                      <el-form-item label="排">
+                        <span>{{ props.row.Row }}</span>
+                      </el-form-item>
+                      <el-form-item label="列">
+                        <span>{{ props.row.Column }}</span>
+                      </el-form-item>
+                    </el-form>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="ISBN" label="ISBN" sortable ></el-table-column>
+                <el-table-column prop="Name" label="书籍名称" sortable ></el-table-column>
+                <el-table-column prop="Author" label="作者" sortable ></el-table-column>
+                <el-table-column prop="Publisher" label="出版社" sortable ></el-table-column>
+                <el-table-column prop="BookType" label="书籍类型" sortable ></el-table-column>
+                <el-table-column prop="CreateTime" label="上架时间" sortable ></el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button size="medium" type="primary" plain v-on:click="handleEdit(scope.$index,scope.row)">编辑</el-button>
+                        <el-button size="medium" type="danger" v-on:click="handleDelete(scope.$index,scope.row)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-pagination background layout="prev, pager, next" :page-size="pageSize" :current-page="currentPage" :total="total" style="margin-top:10px;" v-on:current-change="handlePageChanged" v-on:prev-click="handlePrevClick" v-on:next-click="handleNextClick"></el-pagination>
+            <el-dialog title="书籍信息" :visible.sync="dialogFormVisible">
+              <el-form :model="addOrEditForm">
+                <el-form-item label="ISBN" :label-width="formLabelWidth">
+                  <el-input v-model="addOrEditForm.ISBN" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="书籍名称" :label-width="formLabelWidth">
+                  <el-input v-model="addOrEditForm.Name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="书籍作者" :label-width="formLabelWidth">
+                  <el-input v-model="addOrEditForm.Author" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="出版社" :label-width="formLabelWidth">
+                  <el-input v-model="addOrEditForm.Publisher" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="出版时间" :label-width="formLabelWidth">
+                  <el-date-picker v-model="addOrEditForm.PublishDate" type="date" placeholder="选择日期"></el-date-picker>
+                </el-form-item>
+                <el-form-item label="书籍类型" :label-width="formLabelWidth">
+                  <el-select v-model="addOrEditForm.BookType" placeholder="请选择书籍类型">
+                    <el-option label="技术类" value="技术类"></el-option>
+                    <el-option label="科普类" value="科普类"></el-option>
+                    <el-option label="文学类" value="文学类"></el-option>
+                    <el-option label="社科类" value="社科类"></el-option>
+                    <el-option label="语言类" value="语言类"></el-option>
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="书籍描述" :label-width="formLabelWidth">
+                  <el-input v-model="addOrEditForm.Description" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="存放位置" :label-width="formLabelWidth">
+                  <el-tag v-model="addOrEditForm.Location" style="vertical-align:middle;">{{addOrEditForm.Location}}</el-tag>
+                  <el-button icon="el-icon-place" circle v-on:click="handleLocation"></el-button>
+                </el-form-item>
+              </el-form>
+              <div slot="footer" class="dialog-footer">
+                <el-button v-on:click="dialogFormVisible = false">取 消</el-button>
+                <el-button type="primary" v-on:click="handleSave">确 定</el-button>
+              </div>
+              <el-dialog title="位置信息" :visible.sync="dialogLocationVisible">
+                   <el-table :data="locationData" style="width: 100%" highlight-current-row border :default-sort="{prop: 'date', order: 'descending'}" v-on:current-change="handleLocationCurrentChange">
+                        <el-table-column prop="Name" label="图书馆" sortable ></el-table-column>
+                        <el-table-column prop="SubName" label="图书室" sortable ></el-table-column>
+                        <el-table-column prop="Row" label="排" sortable ></el-table-column>
+                        <el-table-column prop="Column" label="列" sortable ></el-table-column>
+                        <el-table-column prop="Description" label="描述" sortable ></el-table-column>
+                   </el-table>
+                   <el-pagination background layout="prev, pager, next" :page-size="locationPageSize" :current-page="locationCurrentPage" :total="locationTotal" style="margin-top:10px;" v-on:current-change="handleLocationPageChanged" v-on:prev-click="handleLocationPrevClick" v-on:next-click="handleLocationNextClick"></el-pagination>
+                   <div slot="footer" class="dialog-footer">
+                    <el-button v-on:click="dialogLocationVisible = false">取 消</el-button>
+                    <el-button type="primary" v-on:click="handleLocationSave">确 定</el-button>
+                  </div>
+               </el-dialog>
+            </el-dialog>
+            
+        </template>
+    </div>
+    <script>
+        var app= new Vue({
+             el: '#app',
+             data:function() {
+               return {
+                 queryCondition:{
+                    Name:'',
+                    Publisher:''
+                 },
+                 formLabelWidth: '120px',
+                 addOrEditForm:{
+                    Id:0,
+                    ISBN: '',
+                    Name: '',
+                    Author: '',
+                    Publisher: '',
+                    PublishDate: '',
+                    BookType: '',
+                    Description: '',
+                    BookRackId:'',
+                    Location:''
+                 },
+                 total:0,
+                 pageSize:10,
+                 currentPage:1,
+                 dialogFormVisible: false,
+                 dialogLocationVisible:false,
+                 tableData: [],
+                 queryLocationCondition:{
+                    Name:'',
+                    Publisher:''
+                 },
+                 locationData:[],
+                 locationTotal:0,
+                 locationPageSize:5,
+                 locationCurrentPage:1,
+                 locationCurrentRow: null,
+               }
+             },
+             mounted:function(){
+                this.query(1);
+             },
+             methods: {
+               handleOpen(key, keyPath) {
+                 console.log(key, keyPath);
+               },
+               handleClose(key, keyPath) {
+                 console.log(key, keyPath);
+               },
+               formatter(row, column) {
+                 return row.address;
+               },
+               handleQuery(){
+                this.query(1);
+               },
+               handlePageChanged(val){
+                this.query(val);
+               },
+               handlePrevClick(){
+                //query(this.currentPage);
+               },
+               handleNextClick(){
+                //query(this.currentPage);
+               },
+               handleLocationPageChanged(val){
+                this.queryLocation(val);
+               },
+               handleLocationPrevClick(){
+                //query(this.currentPage);
+               },
+               handleLocationNextClick(){
+                //query(this.currentPage);
+               },
+               handleAdd(){
+                 this.addOrEditForm.Id=0;
+                 this.addOrEditForm.ISBN= '';
+                 this.addOrEditForm.Name= '';
+                 this.addOrEditForm.Author= '';
+                 this.addOrEditForm.Publisher= '';
+                 this.addOrEditForm.PublishDate= '';
+                 this.addOrEditForm.BookType= '';
+                 this.addOrEditForm.Description= '';
+                 this.addOrEditForm.BookRackId='';
+                 this.addOrEditForm.Location='';
+                 this.dialogFormVisible=true;
+                 console.log("add");
+               },
+               handleEdit(index,row){
+                console.log("当前index="+index);
+                console.log(row);
+                this.addOrEditForm.Id=row.Id;
+                this.addOrEditForm.ISBN=row.ISBN;
+                this.addOrEditForm.Name=row.Name;
+                this.addOrEditForm.Author=row.Author;
+                this.addOrEditForm.Publisher=row.Publisher;
+                this.addOrEditForm.PublishDate=row.PublishDate;
+                this.addOrEditForm.BookType=row.BookType;
+                this.addOrEditForm.Description=row.Description;
+                this.addOrEditForm.BookRackId=row.BookRackId;
+                this.addOrEditForm.Location=row.LibraryName+"-"+row.LibrarySubName+"-"+row.Row+"排"+row.Column+"列";;
+                this.dialogFormVisible=true;
+               },
+               handleDelete(index,row){
+                console.log("当前index="+index);
+                console.log(row);
+                this.$confirm('确定要删除编号为'+row.Id+'的书籍吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var that=this;
+                    axios.post('/Book/Delete', {
+                        Id:row.Id
+                    }).then(function (response) {
+                        if(response.status==200){
+                            var msg = response.data;
+                            console.log(msg);
+                            if(msg.code=="0"){
+                                //刷新页面
+                                that.$message({
+                                    type: 'success',
+                                    message: '删除成功!'
+                                  });
+                                that.query(1);
+                            }else{
+                                that.$message.error(msg.message);
+                            }
+                        }
+                        console.log(response);
+                    }).catch(function (error) {
+                        that.$message.error(error);
+                    });
+                     console.log("delete");
+                }).catch(() => {
+                    this.$message({
+                    type: 'info',
+                    message: '已取消删除'
+                    });          
+                });
+               },
+               query(pageNum){
+                var that = this;
+                this.tableData=[];
+                console.log("query");
+                axios.get('/Book/Query', {params:{
+                    Name:this.queryCondition.Name,
+                    Publisher:this.queryCondition.Publisher,
+                    PageSize:this.pageSize,
+                    PageNum:pageNum
+                }}).then(function (response) {
+                    if(response.status==200){
+                        var data = response.data;
+                        var count=data.count;
+                        that.total = count;
+                        for (let i = 0; i < data.items.length; i++) {
+							that.tableData.push({
+                                Id:data.items[i].id,
+								ISBN: data.items[i].isbn,
+                                Name: data.items[i].name,
+                                Author:  data.items[i].author,
+                                Publisher: data.items[i].publisher,
+                                PublishDate: data.items[i].publishDate,
+                                Description:data.items[i].description,
+                                BookType: data.items[i].bookType,
+                                CreateTime: data.items[i].createTime,
+                                LibraryName:data.items[i].libraryName,
+                                LibrarySubName:data.items[i].librarySubName,
+                                Row:data.items[i].row,
+                                Column:data.items[i].column,
+							});
+						}
+                    }
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+               },
+               handleLocation(){
+                this.queryLocation(1);
+                this.dialogLocationVisible=true;
+               },
+               handleLocationCurrentChange(row){
+                this.locationCurrentRow=row;
+               },
+               queryLocation(pageNum){
+                this.locationData=[];
+                var that=this;
+                console.log("location query");
+                axios.get('/BookRack/Query',{params: {
+                    Name:this.queryLocationCondition.Name,
+                    SubName:this.queryLocationCondition.SubName,
+                    PageSize:this.locationPageSize,
+                    PageNum:pageNum
+                }}).then(function (response) {
+                    if(response.status==200){
+                        var data = response.data;
+                        var count=data.count;
+                        that.locationTotal = count;
+                        for (let i = 0; i < data.items.length; i++) {
+                            that.locationData.push({
+                                Id: data.items[i].id,
+                                libraryId:data.items[i].libraryId,
+                                Name: data.items[i].name,
+                                SubName:  data.items[i].subName,
+                                Row : data.items[i].row,
+                                Column : data.items[i].column,
+                                Location : data.items[i].location,
+                                Description:data.items[i].description,
+                                CreateTime: data.items[i].createTime,
+                            });
+                        }
+                    }
+                    console.log(that.locationData);
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+               },
+               handleLocationSave(){
+                console.log(this.locationCurrentRow);
+                if(this.locationCurrentRow!=null){
+                    this.addOrEditForm.BookRackId=this.locationCurrentRow.Id;
+                    this.addOrEditForm.Location=this.locationCurrentRow.Name+"-"+this.locationCurrentRow.SubName+"-"+this.locationCurrentRow.Row+"排"+this.locationCurrentRow.Column+"列";
+                }
+                this.dialogLocationVisible=false;
+               },
+               handleSave(){
+                var that=this;
+                axios.post('/Book/Add', {
+                    Id:this.addOrEditForm.Id,
+                    ISBN: this.addOrEditForm.ISBN,
+                    Name: this.addOrEditForm.Name,
+                    Author: this.addOrEditForm.Author,
+                    Publisher: this.addOrEditForm.Publisher,
+                    PublishDate: this.addOrEditForm.PublishDate,
+                    BookType: this.addOrEditForm.BookType,
+                    Description: this.addOrEditForm.Description,
+                    BookRackId:this.addOrEditForm.BookRackId,
+                }).then(function (response) {
+                    if(response.status==200){
+                        var msg = response.data;
+                        console.log(msg);
+                        if(msg.code=="0"){
+                            that.dialogFormVisible=false;
+                            //刷新页面
+                            that.query(1);
+                        }else{
+                            window.alert(msg.message);
+                        }
+                        console.log(that.dialogFormVisible);
+                    }
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+                 console.log("save");
+               },
+             }
+           });
+    </script>
+    <style>
+      .demo-table-expand {
+        font-size: 0;
+      }
+      .demo-table-expand label {
+        width: 90px;
+        color: #99a9bf;
+      }
+      .demo-table-expand .el-form-item {
+        margin-left:10px;
+        margin-right: 0;
+        margin-bottom: 0;
+        width: 100%;
+      }
+      .el-table .el-table__cell{
+        padding:8px 0px;
+       }
+    </style>
+</body>
+</html>

@@ -1,0 +1,151 @@
+﻿@{
+    Layout = null;
+}
+<html>
+<head>
+    <title>图书管理系统</title>
+    <!-- For-Mobile-Apps-and-Meta-Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="/lib/element-ui/theme-chalk/index.min.css">
+    <!-- 引入组件库 -->
+    <script src="/lib/vue/dist/vue.min.js"></script>
+    <script src="/lib/element-ui/index.min.js"></script>
+    <script src="/lib/axios/axios.min.js"></script>
+</head>
+<body style="margin:0px;">
+    <div id="app">
+        <template>
+            <h1>图书管理系统</h1>
+            <el-page-header v-on:back="goBack" content="注册页面">
+            </el-page-header>
+            <el-form ref="form" :model="form" label-width="80px">
+              <el-form-item label="用户名">
+                <el-input v-model="form.UserName"></el-input>
+              </el-form-item>
+              
+              <el-form-item label="密码">
+                 <el-input placeholder="密码" v-model="form.Password" show-password></el-input>
+              </el-form-item>
+
+              <el-form-item label="昵称">
+                <el-input v-model="form.NickName"></el-input>
+              </el-form-item>
+
+               <el-form-item label="姓名">
+                <el-input v-model="form.Name"></el-input>
+              </el-form-item>
+
+              <el-form-item label="专业">
+                <el-input v-model="form.Deparment"></el-input>
+              </el-form-item>
+
+              <el-form-item label="年级">
+                <el-select v-model="form.Grade" placeholder="请选择">
+                    <el-option v-for="item in Grades" :key="item.value" :label="item.label" :value="item.value">
+                    </el-option>
+                 </el-select>
+              </el-form-item>
+
+              <el-form-item label="班级">
+                <el-select v-model="form.Classes" placeholder="请选择">
+                    <el-option v-for="item in Classes" :key="item.value" :label="item.label" :value="item.value">
+                    </el-option>
+                 </el-select>
+              </el-form-item>
+
+              <el-form-item>
+                <el-button type="primary" v-on:click="onSubmit">注册</el-button>
+                <el-button>取消</el-button>
+              </el-form-item>
+            </el-form>
+        </template>
+    </div>
+    <script>
+       var app= new Vue({
+            el: '#app',
+            data:function() {
+              return {
+                form:{
+                    UserName:'',
+                    Name:'',
+                    NickName:'',
+                    Password:'',
+                    Deparment:'',
+                    Grade:'',
+                    Classes:''
+                },
+                Grades: [
+                    {
+                        value: '1',
+                        label: '一年级'
+                    }, {
+                        value: '22',
+                        label: '二年级'
+                    }, {
+                        value: '3',
+                        label: '三年级'
+                    }, {
+                        value: '4',
+                        label: '四年级'
+                    }
+                ],
+                Classes: [
+                    {
+                        value: '1',
+                        label: '一班'
+                    }, {
+                        value: '22',
+                        label: '二班'
+                    }, {
+                        value: '3',
+                        label: '三班'
+                    }, {
+                        value: '4',
+                        label: '四班'
+                    }, {
+                        value: '5',
+                        label: '五班'
+                    }, {
+                        value: '6',
+                        label: '六班'
+                    }
+                ],
+              }
+            },
+             methods: {
+              handleOpen(key, keyPath) {
+                console.log(key, keyPath);
+              },
+              handleClose(key, keyPath) {
+                console.log(key, keyPath);
+              },
+              goBack(){
+                location.href="/Login"
+              },
+              onSubmit(){
+                this.$message({
+                    type: 'warning',
+                    message: '此功能尚未完善!'
+                });
+                return;
+              },
+            }
+          });
+    </script>
+    <style>
+        #app {
+            width: 40vh;
+            position: absolute;
+            left: 40%;
+            top: 10vh;
+            border: solid 1px lightblue;
+            border-radius: 10px;
+            padding: 50px;
+        }
+    </style>
+</body>
+</html>
+

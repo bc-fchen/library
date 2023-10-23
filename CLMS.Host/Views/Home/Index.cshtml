@@ -1,0 +1,178 @@
+﻿@{
+    Layout = null;
+}
+<html>
+<head>
+    <title>图书管理系统</title>
+    <!-- For-Mobile-Apps-and-Meta-Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="/lib/element-ui/theme-chalk/index.min.css">
+    <!-- 引入组件库 -->
+    <script src="/lib/vue/dist/vue.min.js"></script>
+    <script src="/lib/element-ui/index.min.js"></script>
+    <script src="/lib/axios/axios.min.js"></script>
+</head>
+<body style="margin:0px;">
+    <div id="app">
+        <el-container style="height:100vh; margin:0px;">
+          <el-header style="background:url('/imgs/banner.jpg');height:120px;">
+              <h1>
+                  图书管理系统  Library Management System
+              </h1>
+              <div style="text-align:right;position:relative;bottom:30px;">
+                  <el-link type="info" style="color:white;" href="/Home/Welcome" target="content">首页</el-link>&nbsp;|&nbsp;
+                  <el-link type="info" style="color:white;" href="/Personal"  target="content">{{nickName}}</el-link>&nbsp;|&nbsp;
+                  <el-link type="info" style="color:white;" href="/Home/Logout" target="_self">退出</el-link>
+              </div>
+          </el-header>
+          <el-container>
+            <el-aside width="200px">
+                <el-menu
+                  default-active="activeIndex"
+                  class="el-menu-vertical-demo"
+                  v-on:open="handleOpen"
+                  v-on:close="handleClose"
+                  v-on:select="handleSelect"
+                  background-color="#545c64"
+                  text-color="#fff"
+                  active-text-color="#ffd04b">
+                  <el-submenu :index="index" v-for="(right,index) in rights">
+                    <template slot="title">
+                      <span>{{right.menuName}}</span>
+                    </template>
+                    <el-menu-item index="1-1" v-for="(menu,index) in right.Menus">
+                        <el-link type="primary" underline="false" :href="menu.url" target="content">{{menu.menuName}}</el-link>
+                    </el-menu-item>
+                  </el-submenu>
+                </el-menu>
+            </el-aside>
+            <el-container>
+              <el-main name="main" style="padding:0px;">
+                  <iframe name="content" id="content" style="border:0px;width:100%;height:100%;margin:0px;background:white; padding:0px;" src="/Home/Welcome">
+                      
+                  </iframe>
+              </el-main>
+              <el-footer style="background:#409EFF;">
+                  <p style="color:white;"> &copy; 2023 图书管理系统. All Rights Reserved</p>
+              </el-footer>
+            </el-container>
+          </el-container>
+        </el-container>
+    </div>
+    <script>
+       var app= new Vue({
+            el: '#app',
+            data:function() {
+              return {
+                activeIndex:'/',
+                rights:[],
+                nickName:'',
+              }
+            },
+            mounted:function(){
+                this.handleLoadInfo();
+                this.handleLoadRights();
+            },
+            methods: {
+              handleOpen(key, keyPath) {
+                console.log(key, keyPath);
+              },
+              handleClose(key, keyPath) {
+                console.log(key, keyPath);
+              },
+              handleSelect(index,indexPath){
+                this.activeIndex=index;
+                console.log("index="+index+",indexPath="+indexPath);
+              },
+              handleLoadRights(){
+                var that = this;
+                that.rights=[];
+                console.log("query");
+                axios.get('/Home/GetUserRights', {params:{}}).then(function (response) {
+                    if(response.status==200){
+                        var data = response.data;
+                        let parentMenus=data.filter(function(e){
+                            return e.parentId==null;
+                        });
+                        for(let index=0;index< parentMenus.length;index++){
+                            let parentMenu=parentMenus[index];
+                            let pId=parentMenu.id;
+                            console.log(pId);
+                            let menus = data.filter(function(e){
+                                return e.parentId==pId;
+                            });
+                            console.log(menus);
+                            parentMenu.Menus=menus;
+                            that.rights.push(parentMenu);
+                        }
+                        console.log(that.rights);
+                    }
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+              },
+              handleLoadInfo(){
+                var that =this;
+                axios.get('/User/GetPersonalInfo', {params:{}}).then(function (response) {
+                    if(response.status==200){
+                        var data = response.data;
+                        that.nickName=data.nickName;
+                    }
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+              }
+            }
+          });
+    </script>
+    <style>
+        h1{
+            color:white;
+            font-size:40px;
+            text-align:left;
+        }
+      .el-header, .el-footer {
+        background-color: #B3C0D1;
+        color: #333;
+        text-align: center;
+      }
+  
+      .el-aside {
+        background-color: #D3DCE6;
+        color: #333;
+        text-align: center;
+        line-height: 200px;
+        height:100%;
+      }
+  
+      .el-main {
+        background-color: #E9EEF3;
+        color: #333;
+        text-align: center;
+        line-height: 160px;
+      }
+  
+      body > .el-container {
+      }
+  
+      .el-container:nth-child(5) .el-aside,
+      .el-container:nth-child(6) .el-aside {
+        line-height: 260px;
+      }
+  
+      .el-container:nth-child(7) .el-aside {
+        line-height: 320px;
+      }
+
+      .el-menu-item > .el-link{
+        color:white;
+      }
+    </style>
+</body>
+</html>
+

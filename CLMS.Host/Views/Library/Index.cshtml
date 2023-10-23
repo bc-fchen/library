@@ -1,0 +1,250 @@
+﻿@{
+    Layout = null;
+}
+<html>
+<head>
+    <title>图书管理系统</title>
+    <!-- For-Mobile-Apps-and-Meta-Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="/lib/element-ui/theme-chalk/index.min.css">
+    <!-- 引入组件库 -->
+    <script src="/lib/vue/dist/vue.min.js"></script>
+    <script src="/lib/element-ui/index.min.js"></script>
+    <script src="/lib/axios/axios.min.js"></script>
+</head>
+<body style="margin:10px;background:white;">
+    <div id="app">
+        <template>
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item>书室管理</el-breadcrumb-item>
+                <el-breadcrumb-item>书室管理</el-breadcrumb-item>
+            </el-breadcrumb>
+            <el-form :inline="true" :model="queryCondition" class="demo-form-inline" style="margin-top: 10px; border: solid;border-width: 1px;border-color: #ebeef5;padding: 10px;">
+                <el-form-item label="图书馆名称">
+                    <el-input v-model="queryCondition.Name" placeholder="图书馆名称"></el-input>
+                </el-form-item>
+                <el-form-item label="书室名称">
+                    <el-input v-model="queryCondition.SubName" placeholder="书室名称"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" v-on:click="handleQuery">查询</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" v-on:click="handleAdd">新增</el-button>
+                </el-form-item>
+            </el-form>
+
+            <el-table :data="tableData" style="width: 100%" border>
+                <el-table-column prop="Name" label="图书馆名称" sortable></el-table-column>
+                <el-table-column prop="SubName" label="书室名称" sortable></el-table-column>
+                <el-table-column prop="Location" label="位置" sortable></el-table-column>
+                <el-table-column prop="Manager" label="管理员" sortable></el-table-column>
+                <el-table-column prop="CreateTime" label="创建时间" sortable min-width="120"></el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button size="medium" type="primary" plain v-on:click="handleEdit(scope.$index,scope.row)">编辑</el-button>
+                        <el-button size="medium" type="danger" v-on:click="handleDelete(scope.$index,scope.row)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-pagination background layout="prev, pager, next" :page-size="pageSize" :current-page="currentPage" :total="total" style="margin-top:10px;" v-on:current-change="handlePageChanged" v-on:prev-click="handlePrevClick" v-on:next-click="handleNextClick"></el-pagination>
+            <el-dialog title="书室信息" :visible.sync="dialogFormVisible">
+                <el-form :model="addOrEditForm">
+                    <el-form-item label="图书馆名称" :label-width="formLabelWidth">
+                        <el-input v-model="addOrEditForm.Name" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="书室名称" :label-width="formLabelWidth">
+                        <el-input v-model="addOrEditForm.SubName" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="位置" :label-width="formLabelWidth">
+                        <el-input v-model="addOrEditForm.Location" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="管理员" :label-width="formLabelWidth">
+                        <el-input v-model="addOrEditForm.Manager" autocomplete="off"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button v-on:click="dialogFormVisible = false">取 消</el-button>
+                    <el-button type="primary" v-on:click="handleSave">确 定</el-button>
+                </div>
+            </el-dialog>
+        </template>
+    </div>
+    <script>
+        var app= new Vue({
+             el: '#app',
+             data:function() {
+               return {
+                queryCondition:{
+                    Name: '',
+                    SubName: '',
+                },
+                formLabelWidth: '120px',
+                addOrEditForm:{
+                    ID:0,
+                    Name: '',
+                    SubName: '',
+                    Location:'',
+                    Manager:''
+                 },
+                 total:0,
+                 pageSize:20,
+                 currentPage:1,
+                 dialogFormVisible: false,
+                 tableData: []
+               }
+             },
+             mounted:function(){
+                this.query(1);
+             },
+             methods: {
+               handleOpen(key, keyPath) {
+                 console.log(key, keyPath);
+               },
+               handleClose(key, keyPath) {
+                 console.log(key, keyPath);
+               },
+               formatter(row, column) {
+                 return row.address;
+               },
+               handleQuery(){
+                 this.query(1);
+                 console.log("query");
+               },
+               handlePageChanged(val){
+                this.query(val);
+               },
+               handlePrevClick(val){
+                //this.query(this.currentPage);
+               },
+               handleNextClick(val){
+                //this.query(this.currentPage);
+               },
+               handleEdit(index,row){
+                console.log("当前index="+index);
+                console.log(row);
+                this.addOrEditForm.Id=row.Id;
+                this.addOrEditForm.Name=row.Name;
+                this.addOrEditForm.SubName=row.SubName;
+                this.addOrEditForm.Location=row.Location;
+                this.addOrEditForm.Manager=row.Manager;
+                this.dialogFormVisible=true;
+               },
+               handleDelete(index,row){
+                console.log("当前index="+index);
+                console.log(row);
+                this.$confirm('确定要删除编号为'+row.Id+'的书室吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var that=this;
+                    axios.post('/Library/Delete', {
+                        Id:row.Id
+                    }).then(function (response) {
+                        if(response.status==200){
+                            var msg = response.data;
+                            console.log(msg);
+                            if(msg.code=="0"){
+                                //刷新页面
+                                that.$message({
+                                    type: 'success',
+                                    message: '删除成功!'
+                                  });
+                                that.query(1);
+                            }else{
+                                that.$message.error(msg.message);
+                            }
+                        }
+                        console.log(response);
+                    }).catch(function (error) {
+                        that.$message.error(error);
+                    });
+                     console.log("delete");
+                }).catch(() => {
+                    this.$message({
+                    type: 'info',
+                    message: '已取消删除'
+                    });          
+                });
+               },
+               handleAdd(){
+                 this.addOrEditForm.Id=0;
+                 this.addOrEditForm.Name='';
+                 this.addOrEditForm.SubName='';
+                 this.addOrEditForm.Location='';
+                 this.addOrEditForm.Manager='';
+                 this.dialogFormVisible=true;
+                 console.log("add");
+               },
+               handleSave(){
+                var that=this;
+                axios.post('/Library/Add', {
+                    Id:this.addOrEditForm.Id,
+                    Name:this.addOrEditForm.Name,
+                    SubName:this.addOrEditForm.SubName,
+                    Location:this.addOrEditForm.Location,
+                    Manager:this.addOrEditForm.Manager
+                }).then(function (response) {
+                    if(response.status==200){
+                        var msg = response.data;
+                        console.log(msg);
+                        if(msg.code=="0"){
+                            that.dialogFormVisible=false;
+                            //刷新页面
+                            that.query(1);
+                        }else{
+                            window.alert(msg.message);
+                        }
+                        console.log(that.dialogFormVisible);
+                    }
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+                 console.log("save");
+               },
+               query(pageNum){
+                   var that = this;
+                this.tableData=[];
+                console.log("query");
+                axios.get('/Library/Query',{params: {
+                    Name:this.queryCondition.Name,
+                    SubName:this.queryCondition.SubName,
+                    PageSize:this.pageSize,
+                    PageNum:pageNum
+                }}).then(function (response) {
+                    if(response.status==200){
+                        var data = response.data;
+                        var count=data.count;
+                        that.total = count;
+                        for (let i = 0; i < data.items.length; i++) {
+                            that.tableData.push({
+                                Id: data.items[i].id,
+                                Name: data.items[i].name,
+                                SubName:  data.items[i].subName,
+                                Location: data.items[i].location,
+                                Manager:data.items[i].manager,
+                                CreateTime: data.items[i].createTime,
+                            });
+                        }
+                    }
+                    console.log(that.tableData);
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+               }
+             }
+        });
+    </script>
+    <style>
+        .el-table .el-table__cell{
+            padding:8px 0px;
+        }
+    </style>
+</body>
+</html>

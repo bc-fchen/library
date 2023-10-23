@@ -1,0 +1,287 @@
+﻿@{
+    Layout = null;
+}
+<html>
+<head>
+    <title>图书管理系统</title>
+    <!-- For-Mobile-Apps-and-Meta-Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="/lib/element-ui/theme-chalk/index.min.css">
+    <!-- 引入组件库 -->
+    <script src="/lib/vue/dist/vue.min.js"></script>
+    <script src="/lib/element-ui/index.min.js"></script>
+    <script src="/lib/axios/axios.min.js"></script>
+</head>
+<body style="margin:10px;background:white;">
+    <div id="app">
+        <template>
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item>图书管理</el-breadcrumb-item>
+                <el-breadcrumb-item>图书借阅及归还</el-breadcrumb-item>
+            </el-breadcrumb>
+            <el-form :inline="true" :model="queryCondition" class="demo-form-inline" style="margin-top: 10px; border: solid;border-width: 1px;border-color: #ebeef5;padding: 10px;">
+                <el-form-item label="书籍名称">
+                    <el-input v-model="queryCondition.Name" placeholder="书籍名称"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" v-on:click="handleQuery">查询</el-button>
+                </el-form-item>
+                 <el-form-item>
+                    <el-button type="primary" v-on:click="handleBorrow">借阅</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" v-on:click="handleReturn">归还</el-button>
+                </el-form-item>
+            </el-form>
+            <el-table :data="tableData" style="width: 100%" border :default-sort="{prop: 'BorrowTime', order: 'descending'}">
+                <el-table-column prop="Name" label="书籍名称" sortable ></el-table-column>
+                <el-table-column prop="ISBN" label="ISBN" sortable ></el-table-column>
+                <el-table-column prop="BorrowUser" label="借阅人" sortable ></el-table-column>
+                <el-table-column prop="BorrowTime" label="借阅时间" sortable ></el-table-column>
+                <el-table-column prop="BorrowConfirmor" label="借阅经手人" sortable ></el-table-column>
+                <el-table-column prop="IsReturn" label="是否归还" sortable ></el-table-column>
+                <el-table-column prop="ReturnTime" label="归还时间" sortable ></el-table-column>
+                <el-table-column prop="ReturnConfirmor" label="归还经手人" sortable ></el-table-column>
+            </el-table>
+            <el-pagination background layout="prev, pager, next" :page-size="pageSize" :current-page="currentPage" :total="total" style="margin-top:10px;" v-on:current-change="handlePageChanged" v-on:prev-click="handlePrevClick" v-on:next-click="handleNextClick"></el-pagination>
+            <el-dialog title="借阅信息" :visible.sync="dialogFormBorrowVisible">
+                <el-form :model="borrowForm">
+                    <el-form-item label="ISBN" :label-width="formLabelWidth">
+                      <el-input v-model="borrowForm.ISBN" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="书籍名称" :label-width="formLabelWidth">
+                      <el-input v-model="borrowForm.Name" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="借阅人" :label-width="formLabelWidth">
+                      <el-input v-model="borrowForm.BorrowUser" autocomplete="off"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button v-on:click="dialogFormBorrowVisible = false">取 消</el-button>
+                    <el-button type="primary" v-on:click="handleSaveBorrow">确 定</el-button>
+                </div>
+            </el-dialog>
+            <el-dialog title="归还信息" :visible.sync="dialogFormReturnVisible">
+                <el-form :model="returnForm">
+                    <el-form-item label="ISBN" :label-width="formLabelWidth">
+                      <el-input v-model="returnForm.ISBN" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="书籍名称" :label-width="formLabelWidth">
+                      <el-input v-model="returnForm.Name" autocomplete="off"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button v-on:click="dialogFormReturnVisible = false">取 消</el-button>
+                    <el-button type="primary" v-on:click="handleSaveReturn">确 定</el-button>
+                </div>
+            </el-dialog>
+        </template>
+    </div>
+    <script>
+        var app= new Vue({
+             el: '#app',
+             data:function() {
+               return {
+                   queryCondition:{
+                       Name:''
+                   },
+                   formLabelWidth: '120px',
+                   addOrEditForm:{
+                    Id:0,
+                    ISBN: '',
+                    Name: '',
+                    BorrowConfirmor:  '',
+                    BorrowTime: '',
+                    BorrowUser: '',
+                    IsReturn:'',
+                    ReturnConfirmor: '',
+                    ReturnTime: '',
+                   },
+                   borrowForm:{
+                    Id:0,
+                    ISBN: '',
+                    Name: '',
+                    BorrowUser:''
+                   },
+                   returnForm:{
+                    Id:0,
+                    ISBN: '',
+                    Name: '',
+                   },
+                   total:0,
+                   pageSize:10,
+                   currentPage:1,
+                   tableData: [],
+                   dialogFormBorrowVisible: false,
+                   dialogFormReturnVisible: false,
+               }
+             },
+             mounted:function(){
+                this.query(1);
+             },
+             methods: {
+                handleOpen(key, keyPath) {
+                    console.log(key, keyPath);
+                },
+                handleClose(key, keyPath) {
+                    console.log(key, keyPath);
+                },
+                formatter(row, column) {
+                    return row.address;
+                },
+                handleQuery(){
+                    console.log("query");
+                    this.query(1);
+                },
+                handlePageChanged(val){
+                    this.query(val);
+                },
+                handlePrevClick(){
+                    //query(this.currentPage);
+                },
+                handleNextClick(){
+                    //query(this.currentPage);
+                },
+                handleBorrow(){
+                    this.dialogFormBorrowVisible=true;
+                },
+                handleReturn(){
+                    this.dialogFormReturnVisible=true;
+                },
+                handleSaveBorrow(){
+                    this.$confirm('确定要借阅编号为'+this.borrowForm.ISBN+'的书籍吗?', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        var that=this;
+                        axios.post('/Circulate/Borrow', {
+                            Id:that.borrowForm.Id,
+                            ISBN:that.borrowForm.ISBN,
+                            Name:that.borrowForm.Name,
+                            BorrowUser:that.borrowForm.BorrowUser,
+                        }).then(function (response) {
+                            if(response.status==200){
+                                var msg = response.data;
+                                console.log(msg);
+                                if(msg.code=="0"){
+                                    //刷新页面
+                                    that.dialogFormBorrowVisible=false;
+                                    that.$message({
+                                        type: 'success',
+                                        message: '借阅成功!'
+                                      });
+                                    that.query(1);
+                                }else{
+                                    that.$message.error(msg.message);
+                                }
+                            }
+                            console.log(response);
+                        }).catch(function (error) {
+                            that.$message.error(error);
+                        });
+                         console.log("delete");
+                    }).catch(() => {
+                        this.$message({
+                        type: 'info',
+                        message: '已取消借阅'
+                        });          
+                    });
+                },
+                handleSaveReturn(){
+                    this.$confirm('确定要归还编号为'+this.returnForm.ISBN+'的书籍吗?', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        var that=this;
+                        axios.post('/Circulate/Return', {
+                            Id:that.returnForm.Id,
+                            ISBN:that.returnForm.ISBN,
+                            Name:that.returnForm.Name,
+                        }).then(function (response) {
+                            if(response.status==200){
+                                var msg = response.data;
+                                console.log(msg);
+                                if(msg.code=="0"){
+                                    //刷新页面
+                                    that.dialogFormReturnVisible=false;
+                                    that.$message({
+                                        type: 'success',
+                                        message: '归还成功!'
+                                      });
+                                    that.query(1);
+                                }else{
+                                    that.$message.error(msg.message);
+                                }
+                            }
+                            console.log(response);
+                        }).catch(function (error) {
+                            that.$message.error(error);
+                        });
+                         console.log("delete");
+                    }).catch(() => {
+                        this.$message({
+                        type: 'info',
+                        message: '已取消归还'
+                        });          
+                    });
+                },
+                query(pageNum){
+                    var that = this;
+                    this.tableData=[];
+                    console.log("query");
+                    axios.get('/Circulate/Query', {params:{
+                        Name:this.queryCondition.Name,
+                        PageSize:this.pageSize,
+                        PageNum:pageNum
+                    }}).then(function (response) {
+                        if(response.status==200){
+                            var data = response.data;
+                            var count=data.count;
+                            that.total = count;
+                            for (let i = 0; i < data.items.length; i++) {
+							    that.tableData.push({
+                                    Id:data.items[i].id,
+								    ISBN: data.items[i].isbn,
+                                    Name: data.items[i].name,
+                                    BorrowConfirmor:  data.items[i].borrowConfirmor,
+                                    BorrowTime: data.items[i].borrowTime,
+                                    BorrowUser: data.items[i].borrowUser,
+                                    IsReturn:data.items[i].isReturn==true?'已归还':'未归还',
+                                    ReturnConfirmor: data.items[i].returnConfirmor,
+                                    ReturnTime: data.items[i].returnTime,
+							    });
+						    }
+                        }
+                        console.log(response);
+                    }).catch(function (error) {
+                        console.log(error);
+                    });
+               },
+            }
+        });
+    </script>
+    <style>
+      .demo-table-expand {
+        font-size: 0;
+      }
+      .demo-table-expand label {
+        width: 90px;
+        color: #99a9bf;
+      }
+      .demo-table-expand .el-form-item {
+        margin-left:10px;
+        margin-right: 0;
+        margin-bottom: 0;
+        width: 100%;
+      }
+      .el-table .el-table__cell{
+        padding:8px 0px;
+       }
+    </style>
+</body>
+</html>

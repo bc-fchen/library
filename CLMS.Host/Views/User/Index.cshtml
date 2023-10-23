@@ -1,0 +1,345 @@
+﻿@{
+    Layout = null;
+}
+<html>
+<head>
+    <title>图书管理系统</title>
+    <!-- For-Mobile-Apps-and-Meta-Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="/lib/element-ui/theme-chalk/index.min.css">
+    <!-- 引入组件库 -->
+    <script src="/lib/vue/dist/vue.min.js"></script>
+    <script src="/lib/element-ui/index.min.js"></script>
+    <script src="/lib/axios/axios.min.js"></script>
+</head>
+<body style="margin:10px;background:white;">
+    <div id="app">
+        <template>
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item>系统管理</el-breadcrumb-item>
+                <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+            </el-breadcrumb>
+            <el-form :inline="true" :model="queryCondition" class="demo-form-inline" style="margin-top: 10px; border: solid;border-width: 1px;border-color: #ebeef5;padding: 10px;">
+                <el-form-item label="用户名称">
+                    <el-input v-model="queryCondition.UserName" placeholder="用户名称"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" v-on:click="handleQuery">查询</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" v-on:click="handleAdd">新增</el-button>
+                </el-form-item>
+            </el-form>
+
+            <el-table :data="tableData" style="width: 100%" border>
+                <el-table-column prop="UserName" label="用户名称" sortable></el-table-column>
+                <el-table-column prop="NickName" label="昵称" sortable></el-table-column>
+                <el-table-column prop="CreateTime" label="创建时间" sortable min-width="120"></el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button size="medium" type="primary" plain v-on:click="handleEdit(scope.$index,scope.row)">编辑</el-button>
+                        <el-button size="medium" type="primary" plain v-on:click="handleRole(scope.$index,scope.row)">授权</el-button>
+                        <el-button size="medium" type="danger" v-on:click="handleDelete(scope.$index,scope.row)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-pagination background layout="prev, pager, next" :page-size="pageSize" :current-page="currentPage" :total="total" style="margin-top:10px;" v-on:current-change="handlePageChanged" v-on:prev-click="handlePrevClick" v-on:next-click="handleNextClick"></el-pagination>
+            <el-dialog title="用户信息" :visible.sync="dialogFormVisible">
+                <el-form :model="addOrEditForm">
+                    <el-form-item label="用户名称" :label-width="formLabelWidth">
+                        <el-input v-model="addOrEditForm.UserName" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="昵称" :label-width="formLabelWidth">
+                        <el-input v-model="addOrEditForm.NickName" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="密码" :label-width="formLabelWidth">
+                        <el-input v-model="addOrEditForm.Password" autocomplete="off"></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button v-on:click="dialogFormVisible = false">取 消</el-button>
+                    <el-button type="primary" v-on:click="handleSave">确 定</el-button>
+                </div>
+            </el-dialog>
+            <el-dialog title="授权信息" :visible.sync="dialogRoleVisible" width="40%">
+                <el-transfer v-model="userrole" :data="roles" :titles="roleTitles"></el-transfer>
+                <div slot="footer" class="dialog-footer">
+                    <el-button v-on:click="dialogRoleVisible = false">取 消</el-button>
+                    <el-button type="primary" v-on:click="handleSaveRole">确 定</el-button>
+                </div>
+            </el-dialog>
+        </template>
+    </div>
+    <script>
+        var app= new Vue({
+             el: '#app',
+             data:function() {
+               return {
+                queryCondition:{
+                    UserName: '',
+                },
+                formLabelWidth: '120px',
+                addOrEditForm:{
+                    Id:0,
+                    UserName: '',
+                    NickName: '',
+                    Password:'123456',
+                 },
+                 userRoleForm:{
+                    userId:0
+                 },
+                 total:0,
+                 pageSize:20,
+                 currentPage:1,
+                 dialogFormVisible: false,
+                 dialogRoleVisible:false,
+                 tableData: [],
+                 roles:[],
+                 userrole:[],
+                 roleTitles:['未分配角色', '已分配角色']
+               }
+             },
+             mounted:function(){
+                this.query(1);
+                this.handleRoles();
+             },
+             methods: {
+               handleOpen(key, keyPath) {
+                 console.log(key, keyPath);
+               },
+               handleClose(key, keyPath) {
+                 console.log(key, keyPath);
+               },
+               formatter(row, column) {
+                 return row.address;
+               },
+               handleQuery(){
+                 this.query(1);
+                 console.log("query");
+               },
+               handlePageChanged(val){
+                this.query(val);
+               },
+               handlePrevClick(val){
+                //this.query(this.currentPage);
+               },
+               handleNextClick(val){
+                //this.query(this.currentPage);
+               },
+               handleEdit(index,row){
+                console.log("当前index="+index);
+                console.log(row);
+                this.addOrEditForm.Id=row.Id;
+                this.addOrEditForm.UserName=row.UserName;
+                this.addOrEditForm.NickName=row.NickName;
+                this.addOrEditForm.Password=row.Password;
+                this.dialogFormVisible=true;
+               },
+               handleDelete(index,row){
+                console.log("当前index="+index);
+                console.log(row);
+                this.$confirm('确定要删除编号为'+row.Id+'的用户吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var that=this;
+                    axios.post('/User/Delete', {
+                        Id:row.Id
+                    }).then(function (response) {
+                        if(response.status==200){
+                            var msg = response.data;
+                            console.log(msg);
+                            if(msg.code=="0"){
+                                //刷新页面
+                                that.$message({
+                                    type: 'success',
+                                    message: '删除成功!'
+                                  });
+                                that.query(1);
+                            }else{
+                                that.$message.error(msg.message);
+                            }
+                        }
+                        console.log(response);
+                    }).catch(function (error) {
+                        that.$message.error(error);
+                    });
+                     console.log("delete");
+                }).catch(() => {
+                    this.$message({
+                    type: 'info',
+                    message: '已取消删除'
+                    });
+                });
+               },
+               handleRoles(){
+                var that = this;
+                this.roles=[];
+                axios.get('/Role/GetRoles',{params: {
+                    PageSize:0,
+                }}).then(function (response) {
+                    if(response.status==200){
+                        var data = response.data;
+                        for (let i = 0; i < data.items.length; i++) {
+                            that.roles.push({
+                                key: data.items[i].id,
+                                label:data.items[i].name,
+                                disabled: false,
+                             });
+                        }
+                    }
+                    console.log(that.roles);
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+               },
+               handleRole(index,row){
+                //授权
+                var that = this;
+                var Id=row.Id;
+                this.userRoleForm.userId=Id;
+                console.log("query");
+                axios.get('/User/GetUserRoles',{params: {
+                    UserId:Id,
+                }}).then(function (response) {
+                    if(response.status==200){
+                        var data = response.data;
+                        for (let i = 0; i < data.items.length; i++) {
+                            that.userrole.push(
+                               data.items[i].roleId
+                            );
+                        }
+                    }
+                    console.log(that.userrole);
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+                this.dialogRoleVisible=true;
+               },
+               handleSaveRole(){
+                //保存授权
+                var userId=this.userRoleForm.userId;
+                var roleIds=this.userrole.toString();
+
+                console.log("当前用户Id="+userId);
+                console.log("授权roleId="+roleIds);
+                this.$confirm('确定要修改授权吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var that=this;
+                    axios.post('/User/SetUserRoles', {
+                        userId:userId,
+                        roleIds:roleIds
+                    }).then(function (response) {
+                        if(response.status==200){
+                            var msg = response.data;
+                            console.log(msg);
+                            if(msg.code=="0"){
+                                //刷新页面
+                                that.dialogRoleVisible=false;
+                                that.$message({
+                                    type: 'success',
+                                    message: '授权成功!'
+                                  });
+                                that.query(1);
+                            }else{
+                                that.$message.error(msg.message);
+                            }
+                        }
+                        console.log(response);
+                    }).catch(function (error) {
+                        that.$message.error(error);
+                    });
+                     console.log("授权");
+                }).catch(() => {
+                    this.$message({
+                    type: 'info',
+                    message: '授权失败'
+                    });
+                });
+               },
+               handleAdd(){
+                   this.addOrEditForm.Id=0;
+                   this.addOrEditForm.UserName='';
+                   this.addOrEditForm.NickName='';
+                   this.addOrEditForm.Password='123456';
+                   this.dialogFormVisible=true;
+                   console.log("add");
+               },
+               handleSave(){
+                var that=this;
+                var url='/User/AddUser';
+                if(this.addOrEditForm.Id>0){
+                    url='/User/UpdateUser';
+                }
+                axios.post(url, {
+                    Id:this.addOrEditForm.Id,
+                    UserName:this.addOrEditForm.UserName,
+                    NickName:this.addOrEditForm.NickName,
+                    Password:this.addOrEditForm.Password
+                }).then(function (response) {
+                    if(response.status==200){
+                        var msg = response.data;
+                        console.log(msg);
+                        if(msg.code=="0"){
+                            that.dialogFormVisible=false;
+                            //刷新页面
+                            that.query(1);
+                        }else{
+                            window.alert(msg.message);
+                        }
+                        console.log(that.dialogFormVisible);
+                    }
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+                 console.log("save");
+               },
+               query(pageNum){
+                var that = this;
+                this.tableData=[];
+                console.log("query");
+                axios.get('/User/GetUsers',{params: {
+                    UserName:this.queryCondition.UserName,
+                    PageSize:this.pageSize,
+                    PageNum:pageNum
+                }}).then(function (response) {
+                    if(response.status==200){
+                        var data = response.data;
+                        var count=data.count;
+                        that.total = count;
+                        for (let i = 0; i < data.items.length; i++) {
+                            that.tableData.push({
+                                Id: data.items[i].id,
+                                UserName: data.items[i].userName,
+                                NickName:  data.items[i].nickName,
+                                Password: data.items[i].password,
+                                CreateTime: data.items[i].createTime,
+                            });
+                        }
+                    }
+                    console.log(that.tableData);
+                    console.log(response);
+                }).catch(function (error) {
+                    console.log(error);
+                });
+               }
+             }
+        });
+    </script>
+    <style>
+        .el-table .el-table__cell {
+            padding: 8px 0px;
+        }
+    </style>
+</body>
+</html>
